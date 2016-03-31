@@ -1,11 +1,12 @@
 {
   "name": "everyboty_archiver",
-  "description": "An everyboty.net archiver by r3c0d3x",
+  "description": "An everyboty.net archiver by the Bibliotheca Anonoma",
   "private": true,
   "dependencies": {
     "fs-extra": "^0.26.7",
     "qv2": "^2.0.1",
     "request": "^2.69.0",
-    "xtend": "^4.0.1"
+    "xtend": "^4.0.1",
+    "yargs": "^4.3.2"
   }
 }
