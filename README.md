@@ -34,6 +34,8 @@ Everyboty.net Scraper - Written by the Bibliotheca Anonoma
 Repository - https://github.com/bibanon/scraping-everyboty
 ```
 
+I probably should mention this in the help screen, but to set a set a boolean value to true or false, you must append an equals sign '=' followed by a 'true' or false' i.e. ``node main.js -a 1 -z 5 -h=false``
+
 Here's an example of its usage:
 ```
 $ node main.js -a 1 -z 5
