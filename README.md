@@ -4,20 +4,41 @@ A Node.js tool to scrape Everyboty.net
 
 #### What does it do?
 
-It will download all the posts and images (at a rate of 3 requests per second) from http://everyboty.net and put them in directories based on their ID. It outputs the data in JSON and HTML for both machines and humans to consume.
+It will download all the posts and images (at a rate of 2 requests per second) from http://everyboty.net and put them in directories based on their ID. It outputs the data in JSON and HTML for both machines and humans to consume.
 
 #### How do I use it?
-Clone it into the directory where you want it to work, then:
+We have a built-in help screen to guide you in your archiving journey, which I will quote below:
 ```
-$ npm install
-$ node main.js minId maxId
+$ node main.js --help
+General options:
+  -a, --min      The post # to start at (including this)     [number] [required]
+  -z, --max      The post # to end at (including this)       [number] [required]
+  -r, --recover  Whether or not to try and recover deleted posts (only tags &
+                 images)                              [boolean] [default: false]
+
+Output options:
+  -j, --json  Whether or not to include JSON output    [boolean] [default: true]
+  -h, --html  Whether or not to include HTML output    [boolean] [default: true]
+
+Download options:
+  -p, --posts  Whether or not to download posts        [boolean] [default: true]
+  -i, --imgs   Whether or not to download images (requires posts)
+                                                       [boolean] [default: true]
+  -c, --cmnts  Whether or not to download comments     [boolean] [default: true]
+  -t, --tags   Whether or not to download tags         [boolean] [default: true]
+
+Options:
+  --help  Show help                                                    [boolean]
+
+Everyboty.net Scraper - Written by the Bibliotheca Anonoma
+Repository - https://github.com/bibanon/scraping-everyboty
 ```
-where `minId` and `maxId` are the post IDs to download between (inclusive). It will create a directory called 'everyboty' and throw everything into there.
-Here's an example:
+
+Here's an example of its usage:
 ```
-$ node main.js 1 5
+$ node main.js -a 1 -z 5
 ```
-This will create the 'everyboty' directory and folders for each ID inside of it, and will create an 'index.html' file and 'post.json' file in each for HTML and JSON output, as well as downloading the images required by the posts. Your directory structure in the end will look something like:
+This will create the 'everyboty' directory and folders for each ID inside of it. These folders will contain all the data that you chose to output for each post. While the directory structure may vary based on which options you chose, in the end it will look something like this:
 ```
 main.js
 package.json
