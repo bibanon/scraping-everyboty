@@ -2,6 +2,10 @@
 ## scraping-everyboty
 A Node.js tool to scrape Everyboty.net
 
+#### How do I install it?
+
+Clone the repo, then run ``npm install``.
+
 #### What does it do?
 
 It will download all the posts and images (at a rate of 2 requests per second) from http://everyboty.net and put them in directories based on their ID. It outputs the data in JSON and HTML for both machines and humans to consume.
@@ -26,6 +30,12 @@ Download options:
                                                        [boolean] [default: true]
   -c, --cmnts  Whether or not to download comments     [boolean] [default: true]
   -t, --tags   Whether or not to download tags         [boolean] [default: true]
+
+Miscellaneous options:
+  -g, --makehtml      If enabled, it will generate HTML from previously
+                      downloaded JSON                 [boolean] [default: false]
+  -d, --downloadurls  If enabled, it will download images from previously
+                      downloaded JSON                 [boolean] [default: false]
 
 Options:
   --help  Show help                                                    [boolean]

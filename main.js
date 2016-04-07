@@ -2,6 +2,7 @@
 var basicOptsStr = 'General options: ';
 var outOptsStr = 'Output options: ';
 var dwnldOptsStr = 'Download options: ';
+var miscOptsStr = 'Miscellaneous options: ';
 var info = 'Everyboty.net Scraper - Written by the Bibliotheca Anonoma\nRepository - https://github.com/bibanon/scraping-everyboty';
 var argv = require('yargs')
     .options({
@@ -67,19 +68,136 @@ var argv = require('yargs')
             describe: 'Whether or not to try and recover deleted posts (only tags & images)',
             default: false,
             group: basicOptsStr
+        },
+        'g': {
+            alias: 'makehtml',
+            type: 'boolean',
+            describe: 'If enabled, it will generate HTML from previously downloaded JSON',
+            default: false,
+            group: miscOptsStr
+        },
+        'd': {
+            alias: 'downloadurls',
+            type: 'boolean',
+            describe: 'If enabled, it will download images from previously downloaded JSON',
+            default: false,
+            group: miscOptsStr
         }
     })
     .help()
     .showHelpOnFail(true)
     .epilogue(info)
     .argv;
-var http = require('http');
-var util = require('util');
+var path = require('path');
 var fs = require('fs-extra');
+var rootPath = './everyboty';
+var util = require('util');
+var deletedPosts = [];
+var fileExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 var queue = require('qv2');
+var requestQueue = new queue();
+var http = require('http');
+var requestsPerSecond = 2;
+
+function writeHtml(id, data, path) {
+    var htmlOut = '';
+    if (data.deleted) {
+        htmlOut = util.format('<!DOCTYPE html><html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Post #%d - Everyboty.net Scraper</title><link rel="stylesheet" href="../style.css" ></head><body><h2>Post #%d</h2><h3 class="deleted">DELETED</h3>We attempted to recover the images from the post and included them in the directory.<br><div id="signature">Everyboty.net Scraper - Written for use by Bibliotheca Anonoma</div></body></html>', id, id);
+    }
+    else {
+        htmlOut = util.format('<!DOCTYPE html><html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Post #%d - Everyboty.net Scraper</title><link rel="stylesheet" href="../style.css" ></head><body><h2>Post #%d</h2>', id, id);
+        for (var i = 0; i < data.items.length; i++) {
+            if (data.items[i].type == 'file') {
+                if (argv.imgs)
+                    htmlOut += util.format('<img class="content img" src="%d.%s"/>', data.items[i].img, data.items[i].ext);
+            }
+            else { // must be text
+                htmlOut += util.format('<div class="content text">%s</div>', data.items[i].content);
+            }
+        }
+              
+        if (argv.cmnts) {
+            htmlOut += '<div id="comments"><b>Comments: </b><br><br>';
+      
+            for (var i = 0; i < data.comments.length; i++) {
+                htmlOut += util.format('<div class="comment"><div class="timestamp">%s</div><div class="content">%s</div></div>', new Date(data.comments[i].timestamp*1000).toGMTString(), data.comments[i].content);
+            }
+               
+            htmlOut += '</div>';
+        }
+                
+        if (argv.tags) {
+            htmlOut += '<div class="tags"><b>Tags: </b><ul>';
+                    
+            for (var i = 0; i < data.tags.length; i++) {
+                htmlOut += '<li>' + data.tags[i].tag + '</li>';
+            }
+                 
+            htmlOut += '<ul></div>';
+        } 
+       
+        htmlOut += util.format('<a href="%s">Permalink (on their site)</a><div id="signature">Everyboty.net Scraper - Written for use by Bibliotheca Anonoma</div></body></html>', data.permalink);
+    }
+    fs.writeFile(path + '/index.html', htmlOut, function(writeErr) {
+        if (writeErr)
+            return console.log(writeErr);
+        console.log('HTML data for post #' + id + ' saved.');
+    });
+}
+    
+if (argv.makehtml || argv.downloadurls) {
+    var dirs = fs.readdirSync(rootPath).filter(function(file) {
+            return fs.statSync(path.join(rootPath, file)).isDirectory();
+        });
+        
+    function getPostData(id) {
+        return JSON.parse(fs.readFileSync(rootPath + '/' + id + '/post.json', 'utf8'));
+    }
+        
+    if (argv.makehtml) {
+        fs.copySync('./style.css', rootPath + '/style.css');
+        var dirs = fs.readdirSync(rootPath).filter(function(file) {
+            return fs.statSync(path.join(rootPath, file)).isDirectory();
+        });
+    
+        for (var i = 0; i < dirs.length; i++)
+            writeHtml(Number(dirs[i]), getPostData(dirs[i]), rootPath + '/' + dirs[i]);
+    }
+    
+    if (argv.downloadurls) {
+        for (var i = 0; i < dirs.length; i++) {
+            var data = getPostData(dirs[i]);
+            for (var i2 = 0; i2 < data.items.length; i2++) {
+                requestQueue.enqueue([{ uri: data.items[i2].url }, data.items[i2].img + '.' + data.items[i2].ext, dirs[i]]);
+            }
+        }
+        try {
+            fs.accessSync(rootPath + '/deleted.json', fs.F_OK);
+            var recovered = JSON.parse(fs.readFileSync(rootPath + '/deleted.json', 'utf8'));
+            for (var i = 0; i < recovered.length; i++) { // [fileName, deletedPostNum, url]
+                requestQueue.enqueue([{ uri: recovered[i][2] }, recovered[i][0], recovered[i][1]])
+            }
+        } catch (e) { }
+        var interval = setInterval(function() { // direct copypasta from the bottom of the script, this is really hacky
+            var dq = requestQueue.dequeue(); 
+            if (typeof dq !== 'undefined') {
+                console.log('Downloading image ' + dq[1]);
+                var file = fs.createWriteStream(rootPath + '/' + dq[2] + '/' + dq[1]);
+                var req = http.get(dq[0].uri, function(res) {
+                    res.pipe(file);
+                    console.log('Downloaded image ' + dq[1]);
+                });
+                //request(dq[0]).pipe(fs.createWriteStream(rootPath + '/' + dq[2] + '/' + dq[1]));
+            }
+            else {  
+                clearInterval(interval);
+            }
+        }, 1000/requestsPerSecond); 
+    }
+} else {
+
 var request = require('request');
 var extend = require('xtend');
-var requestQueue = new queue();
 var maxId = argv.max; // the max on the site: 10061, 19 is the first dead post
 var minId = argv.min; // start at 1
     
@@ -99,9 +217,8 @@ var permUrl = baseUrl + '/?perm=%d';
 var postUrl = baseUrl + '/ajax/index.php?script=get_post&post_id=%d';
 var tagsUrl = baseUrl + '/ajax/index.php?script=get_post_tags&post_id=%d';
 var commentsUrl = baseUrl + '/ajax/index.php?script=get_post_comments&post_id=%d';
-var rootPath = './everyboty';
 var output = {};
-var requestsPerSecond = 2;
+var deletedData = [];
 var apiRequestOpts = {
     gzip: true,
     headers: {
@@ -118,9 +235,6 @@ var imgRequestOpts = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.87 Safari/537.36',
     }
 };
-var deletedPosts = [];
-var fileExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-var recoveredImages = [];
 
 console.log('\n' + info + '\n\nDownloading posts between %d and %d. If this isn\'t what you wanted, turn back now.\n', minId, maxId);
 
@@ -212,6 +326,10 @@ function savePost(id) {
             delete data.timestamp;
         }
         
+        if (argv.html) {
+            writeHtml(id, data, path);
+        }
+        
         if (argv.json) {
             fs.writeFile(path + '/post.json', JSON.stringify(data), function(writeErr) {
                 if (writeErr)
@@ -219,59 +337,32 @@ function savePost(id) {
                 console.log('JSON data for post #' + id + ' saved.');
             });
         }
-        
-        if (argv.html) {
-            var htmlOut = '';
-            if (data.deleted) {
-                htmlOut = util.format('<!DOCTYPE html><html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Post #%d - Everyboty.net Scraper</title><link rel="stylesheet" href="../style.css" ></head><body><h2>Post #%d</h2><h3 class="deleted">DELETED</h3>We attempted to recover the images from the post and included them in the directory.<br><div id="signature">Everyboty.net Scraper - Written for use by Bibliotheca Anonoma</div></body></html>', id, id);
-            }
-            else {
-                htmlOut = util.format('<!DOCTYPE html><html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"><title>Post #%d - Everyboty.net Scraper</title><link rel="stylesheet" href="../style.css" ></head><body><h2>Post #%d</h2>', id, id);
-                for (var i = 0; i < data.items.length; i++) {
-                    if (data.items[i].type == 'file') {
-                        if (argv.imgs)
-                            htmlOut += util.format('<img class="content img" src="%d.%s"/>', data.items[i].img, data.items[i].ext);
-                    }
-                    else { // must be text
-                        htmlOut += util.format('<div class="content text">%s</div>', data.items[i].content);
-                    }
-                }
-                
-                if (argv.cmnts) {
-                    htmlOut += '<div id="comments">';
-        
-                    for (var i = 0; i < data.comments.length; i++) {
-                        htmlOut += util.format('<div class="comment"><div class="timestamp">%s</div><div class="content">%s</div></div>', new Date(data.comments[i].timestamp*1000).toGMTString(), data.comments[i].content);
-                    }
-                }
-        
-                htmlOut += util.format('</div><a href="%s">Permalink (on their site)</a><div id="signature">Everyboty.net Scraper - Written for use by Bibliotheca Anonoma</div></body></html>', data.permalink);
-            }
-            fs.writeFile(path + '/index.html', htmlOut, function(writeErr) {
-                if (writeErr)
-                    return console.log(writeErr);
-                console.log('HTML data for post #' + id + ' saved.');
-            });
-        }
     });
 }
 
 function recoverImages() {
+    var clone = deletedPosts.slice(0);
     //var savedImages = fs.createWriteStream(rootPath + '/saved.txt');
-    for (var i = 0; i < deletedPosts.length; i++) { // for each deleted post
-        var upperBound = findUpperBoundary(deletedPosts[i]);
-        for (var i2 = findLowerBoundary(deletedPosts[i]) + 1; i2 < upperBound; i2++) { // for each image id between the range
+    for (var i = 0; i < clone.length; i++) { // for each deleted post
+        var upperBound = findUpperBoundary(clone[i]);
+        for (var i2 = findLowerBoundary(clone[i]) + 1; i2 < upperBound; i2++) { // for each image id between the range
             for (var i3 = 0; i3 < fileExtensions.length; i3++) { // for each possible file ext this image id could have
+                let readyToDelete = i + 1 == clone.length && i2 + 1 == upperBound;
                 let fileName = i2 + '.' + fileExtensions[i3];
-                //console.log('i: %d, i2: %d, i3: %s', deletedPosts[i], i2, fileExtensions[i3]);
-                console.log('Attempting to download %s for post #%d.', fileName, deletedPosts[i]);
-                var url = util.format(imgUrl, i2, fileExtensions[i3]); // let's abuse the magical powers of 'let'
+                //console.log('i: %d, i2: %d, i3: %s', clone[i], i2, fileExtensions[i3]);
+                console.log('Checking %s for post #%d.', fileName, clone[i]);
+                let url = util.format(imgUrl, i2, fileExtensions[i3]); // let's abuse the magical powers of 'let'
                 let reqOpts = extend(imgRequestOpts, { uri: url });
-                let deletedPostNum = deletedPosts[i];
+                let deletedPostNum = clone[i];
                 var req = request(extend(reqOpts));
                 req.on('response', function(res) {
-                    if (res.statusCode == 200)
-                        requestQueue.enqueue([reqOpts, fileName, deletedPostNum]);
+                    if (res.statusCode == 200) {
+                        if (argv.imgs)
+                            requestQueue.enqueue([reqOpts, fileName, deletedPostNum]);
+                        deletedData.push([fileName, deletedPostNum, url]);
+                        if (readyToDelete)
+                            deletedPosts.shift();
+                    }
                 });
             }
         }
@@ -386,16 +477,18 @@ var interval = setInterval(function() { // setup a function which will be called
             //request(dq[0]).pipe(fs.createWriteStream(rootPath + '/' + dq[2] + '/' + dq[1]));
         }
     }
-    else {
-        if (deletedPosts.length == 0)
-                clearInterval(interval);
-            
+    else {  
         if (argv.recover) {
             if (!blah)
                 recoverImages();
             blah = true;
+            if (deletedPosts.length == 0) {
+                clearInterval(interval);
+                fs.writeFileSync(rootPath + '/deleted.json', JSON.stringify(deletedData), 'utf8');
+            }
         } else {
             clearInterval(interval);
         }
     }
 }, 1000/requestsPerSecond); 
+}
