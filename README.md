@@ -46,7 +46,8 @@ Repository - https://github.com/bibanon/scraping-everyboty
 
 I probably should mention this in the help screen, but to set a set a boolean value to true or false, you must append an equals sign '=' followed by a 'true' or false' i.e. ``node main.js -a 1 -z 5 -h=false``
 
-Here's an example of its usage:
+### Example 1: Scrape a Range of Posts
+
 ```
 $ node main.js -a 1 -z 5
 ```
@@ -79,7 +80,33 @@ everyboty
    |--post.json
 ```
 
-#### How do I use the JSON data?
+### Example 2: Grab the JSON and Generate HTML Only
+
+You might want to grab all the JSON only, and generate some HTML as well, without downloading all the images. You can accomplish this by using the following command:
+
+```
+node main.js -a 1 -z 5 -i=false
+```
+
+### Example 3: Regenerate HTML from archived JSON
+
+You may have opted to grab the JSON only, and need to generate the HTML for it. Just use the following command:
+
+```
+node main.js -a 1 -z 5 -g
+```
+
+### Example 4: Grab images after grabbing json
+
+You may have opted to grab the JSON only, to archive the images in one burst later. Use the following command to download the images:
+
+> **Note:** The `-r` argument is used to recover "deleted" images, which are just unreferenced and not actually deleted.
+
+```
+node main.js -a 1 -z 5 -d -r
+```
+
+### How do I use the JSON data?
 
 The structure of the JSON data goes something like this (using post 5 as an example):
 ```javascript
