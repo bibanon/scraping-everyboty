@@ -198,17 +198,17 @@ if (argv.makehtml || argv.downloadurls) {
 
 var request = require('request');
 var extend = require('xtend');
-var maxId = argv.max; // the max on the site: 10061, 19 is the first dead post
+var maxId = argv.max; // the max on the site: 100042, 19 is the first dead post
 var minId = argv.min; // start at 1
     
-if (minId < 1 || minId > 10061 || maxId < minId || maxId < 1 || maxId > 10061) {
+if (minId < 1 || minId > 100042 || maxId < minId || maxId < 1 || maxId > 100042) {
     console.log('Invalid min or max post number!');
     process.exit(1);
 }
 
 /*else {    
-    minId = Math.min(Math.max(1, argv.min), 10061);
-    maxId = Math.min(Math.max(1, argv.max), 10061);
+    minId = Math.min(Math.max(1, argv.min), 100042);
+    maxId = Math.min(Math.max(1, argv.max), 100042);
     
 }*/
 var baseUrl = 'http://everyboty.net';
