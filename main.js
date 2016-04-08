@@ -97,7 +97,7 @@ var fileExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 var queue = require('qv2');
 var requestQueue = new queue();
 var http = require('http');
-var requestsPerSecond = 2;
+var requestsPerSecond = 5;
 
 function writeHtml(id, data, path) {
     var htmlOut = '';
@@ -209,7 +209,6 @@ if (minId < 1 || minId > 100042 || maxId < minId || maxId < 1 || maxId > 100042)
 /*else {    
     minId = Math.min(Math.max(1, argv.min), 100042);
     maxId = Math.min(Math.max(1, argv.max), 100042);
-    
 }*/
 var baseUrl = 'http://everyboty.net';
 var imgUrl = baseUrl + '/shared/post_media/images/full_sized/%d.%s';
@@ -269,22 +268,33 @@ function saveIfReady(id) {
 }
 
 function isImagePost(id) {
-    for (var i = 0; i < output[id].items.length; i++)
-        if (output[id].items[i].type == 'text')
-            return false;
+    if (typeof output[id] !== 'undefined') {
+        for (var i = 0; i < output[id].items.length; i++)
+            if (output[id].items[i].type == 'text')
+                return false;
+    } else return false;
+    if (output[id].deleted) return false;
         
     return true;
 }
 
 function findLowerBoundary(id) {
     var post;
+    var outnum;
+    
     for (var i = 1; i < id; i++)
         if (isImagePost(id - i)) {
+            //console.log('lowerBoundary: %d, %d', id, id - i);
+            outnum = id - i;
             post = output[id - i]; // lower post boundary
-            break;
+            if (typeof post !== 'undefined')
+                break;
         }
 
-    var lowestId = post.items[0].img; // the name is sorta a lie..
+    if (typeof post !== 'undefined')
+        var lowestId = post.items[0].img || 999999999999; // the name is sorta a lie..
+    else
+        var lowestId = 999999999999;
     
     for (var i = 0; i < post.items.length; i++)
         if (post.items[i].img < lowestId)
@@ -295,13 +305,24 @@ function findLowerBoundary(id) {
 
 function findUpperBoundary(id) {
     var post;
+    var outnum;
+    
     for (var i = 1; i < 10061 - id; i++)
         if (isImagePost(id + i)) {
+            //console.log('upperBoundary: %d, %d', id, id + i);
+            outnum = id + i;
             post = output[id + i]; // upper post boundary
-            break;
+            //console.log(post);
+            if (typeof post !== 'undefined')
+                break;
         }
         
-    var highestId = post.items[0].img;
+    if (typeof post !== 'undefined')
+        var highestId = post.items[0].img || 0;
+    else
+        var highestId = 0;
+    
+    //console.log('id & status: ', outnum, typeof output[outnum]);
     
     for (var i = 0; i < post.items.length; i++)
         if (post.items[i].img > highestId)
@@ -341,11 +362,15 @@ function savePost(id) {
 }
 
 function recoverImages() {
+    //console.log('test');
     var clone = deletedPosts.slice(0);
+    //console.log(clone);
     //var savedImages = fs.createWriteStream(rootPath + '/saved.txt');
     for (var i = 0; i < clone.length; i++) { // for each deleted post
         var upperBound = findUpperBoundary(clone[i]);
-        for (var i2 = findLowerBoundary(clone[i]) + 1; i2 < upperBound; i2++) { // for each image id between the range
+        var lowerBound = findLowerBoundary(clone[i]);
+        //console.log('%d, %d, %d', clone[i], lowerBound, upperBound);
+        for (var i2 = lowerBound + 1; i2 < upperBound; i2++) { // for each image id between the range
             for (var i3 = 0; i3 < fileExtensions.length; i3++) { // for each possible file ext this image id could have
                 let readyToDelete = i + 1 == clone.length && i2 + 1 == upperBound;
                 let fileName = i2 + '.' + fileExtensions[i3];
