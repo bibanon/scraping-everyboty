@@ -97,7 +97,7 @@ var fileExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 var queue = require('qv2');
 var requestQueue = new queue();
 var http = require('http');
-var requestsPerSecond = 5;
+var requestsPerSecond = 2;
 
 function writeHtml(id, data, path) {
     var htmlOut = '';
@@ -269,33 +269,22 @@ function saveIfReady(id) {
 }
 
 function isImagePost(id) {
-    if (typeof output[id] !== 'undefined') {
-        for (var i = 0; i < output[id].items.length; i++)
-            if (output[id].items[i].type == 'text')
-                return false;
-    } else return false;
-    if (output[id].deleted) return false;
+    for (var i = 0; i < output[id].items.length; i++)
+        if (output[id].items[i].type == 'text')
+            return false;
         
     return true;
 }
 
 function findLowerBoundary(id) {
-    var outnum;
     var post;
     for (var i = 1; i < id; i++)
         if (isImagePost(id - i)) {
-            //console.log('lowerBoundary: %d, %d', id, id - i);
-            outnum = id - i;
             post = output[id - i]; // lower post boundary
-            if (typeof post !== 'undefined')
-                break;
+            break;
         }
-        
-    if (typeof post !== 'undefined')
-        var lowestId = post.items[0].img || 999999999999; // the name is sorta a lie..
-    else
-        var lowestId = 999999999999;
-    //console.log('id & status: ', outnum, typeof output[outnum]);
+
+    var lowestId = post.items[0].img; // the name is sorta a lie..
     
     for (var i = 0; i < post.items.length; i++)
         if (post.items[i].img < lowestId)
@@ -305,23 +294,14 @@ function findLowerBoundary(id) {
 }
 
 function findUpperBoundary(id) {
-    var outnum;
     var post;
     for (var i = 1; i < 10061 - id; i++)
         if (isImagePost(id + i)) {
-            //console.log('upperBoundary: %d, %d', id, id + i);
-            outnum = id + i;
             post = output[id + i]; // upper post boundary
-            //console.log(post);
-            if (typeof post !== 'undefined')
-                break;
+            break;
         }
-    if (typeof post !== 'undefined')
-        var highestId = post.items[0].img || 0;
-    else
-        var highestId = 0;
-    
-    //console.log('id & status: ', outnum, typeof output[outnum]);
+        
+    var highestId = post.items[0].img;
     
     for (var i = 0; i < post.items.length; i++)
         if (post.items[i].img > highestId)
@@ -361,15 +341,11 @@ function savePost(id) {
 }
 
 function recoverImages() {
-    //console.log('test');
     var clone = deletedPosts.slice(0);
-    //console.log(clone);
     //var savedImages = fs.createWriteStream(rootPath + '/saved.txt');
     for (var i = 0; i < clone.length; i++) { // for each deleted post
         var upperBound = findUpperBoundary(clone[i]);
-        var lowerBound = findLowerBoundary(clone[i]);
-        //console.log('%d, %d, %d', clone[i], lowerBound, upperBound);
-        for (var i2 = lowerBound + 1; i2 < upperBound; i2++) { // for each image id between the range
+        for (var i2 = findLowerBoundary(clone[i]) + 1; i2 < upperBound; i2++) { // for each image id between the range
             for (var i3 = 0; i3 < fileExtensions.length; i3++) { // for each possible file ext this image id could have
                 let readyToDelete = i + 1 == clone.length && i2 + 1 == upperBound;
                 let fileName = i2 + '.' + fileExtensions[i3];
@@ -381,11 +357,9 @@ function recoverImages() {
                 var req = request(extend(reqOpts));
                 req.on('response', function(res) {
                     if (res.statusCode == 200) {
-                        if (argv.imgs) {
+                        if (argv.imgs)
                             requestQueue.enqueue([reqOpts, fileName, deletedPostNum]);
-                        }
                         deletedData.push([fileName, deletedPostNum, url]);
-                        fs.writeFileSync(rootPath + '/deleted.json', JSON.stringify(deletedData), 'utf8');
                         if (readyToDelete)
                             deletedPosts.shift();
                     }
