@@ -130,3 +130,21 @@ The structure of the JSON data goes something like this (using post 5 as an exam
     "permalink": "http://everyboty.net/?perm=5"
 }
 ```
+
+## Notes
+
+1. This will get all the post data:
+
+$ node main.js -a $startpost -z $endpost -r=true -h=false -i=false
+
+2. This will get the images based on the JSON:
+
+$ node main.js -a $startpost -z $endpost -d=true
+
+This completely ignores the start and end post #s! Be aware of this when using -h or -d. It will download the images for every post that has a directory.
+
+3. This will generate the HTML:
+
+$ node main.js -a $startpost -z $endpost -g=true
+
+See above note about -h and -d ignoring post start and end #s.
