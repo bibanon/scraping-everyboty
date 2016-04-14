@@ -106,6 +106,18 @@ You may have opted to grab the JSON only, to archive the images in one burst lat
 node main.js -a 1 -z 5 -d -r
 ```
 
+### Example 5: Check for "deleted" images
+
+Although some images are removed from the database for whatever reason, they are not really deleted from the server and can still be accessed. We can attempt to grab them.
+
+To only check for deleted images, and to create a "deleted.json" file for them in the everyboty directory, I'd run something like: 
+
+```
+node main.js -a 2999 -z 3008 -i=false -h=false -r=true -j=false
+```
+
+```
+
 ### How do I use the JSON data?
 
 The structure of the JSON data goes something like this (using post 5 as an example):
