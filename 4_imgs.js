@@ -61,7 +61,7 @@ function findUpperBoundary(id) {
     var outnum;
     var highestId = 0;
     
-    for (var i = 1; i < 100042 - id; i++) {
+    for (var i = 1; i < 100043 - id; i++) {
         post = getPost(id + i);
         if (isImagePost(post)) {
             outnum = id + i;
