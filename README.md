@@ -8,7 +8,7 @@ Clone the repo, then run ``npm install``.
 
 #### What does it do?
 
-It will download all the posts and images (at a rate of 2 requests per second) from http://everyboty.net and put them in directories based on their ID. It outputs the data in JSON and HTML for both machines and humans to consume.
+It will download all the posts and images (at a rate of 3 requests per second by default) from http://everyboty.net and put them in directories based on their ID. It outputs the data in JSON and HTML for both machines and humans to consume.
 
 #### How do I use it?
 Refer to the built-in documentation included in ```config.json```. I'll include it below for your convenience:
