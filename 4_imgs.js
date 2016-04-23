@@ -85,11 +85,11 @@ var interval = setInterval(function() { // setup a function which will be called
                     headers: {
                         'Referer': 'http://everyboty.net/',
                         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.87 Safari/537.36',
+                        'contact-us-at': '#bibanon @ rizon.net (irc)'
                     },
                     gzip: true,
                     uri: dq.url,
-                    method: 'GET',
-                    'contact-us-at': '#bibanon @ rizon.net (irc)'
+                    method: 'GET'
                 }, function(err) { if (err) throw err; }).on('response', function() { console.log('Downloaded %s for post #%d.', dq.name, dq.id); }).pipe(fs.createWriteStream('./data_html/' + getPostFolder(dq.id) + '/' + dq.id + '/' + dq.name));
             break;
             case 'try':
@@ -97,11 +97,11 @@ var interval = setInterval(function() { // setup a function which will be called
                     headers: {
                         'Referer': 'http://everyboty.net/',
                         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.87 Safari/537.36',
+                        'contact-us-at': '#bibanon @ rizon.net (irc)'
                     },
                     gzip: true,
                     uri: dq.url,
-                    method: 'HEAD',
-                    'contact-us-at': '#bibanon @ rizon.net (irc)'
+                    method: 'HEAD'
                 }, function(err, res) {
                     if (!err)
                         if (res.statusCode == 200) {
